@@ -1,4 +1,5 @@
 import React from "react"
+import axios from "axios";
 import logo from "./logo.svg";
 import "./App.css";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -15,7 +16,6 @@ import {
 
 
 
-
 const data=[
   { id: 1, nombre: "Juan Alberto", apellido: "Alcantara", telefono:"5515123712", correo:"alberto.blue.19@gmail.com",edad:28,estado:"Nuevo" },
   { id: 2, nombre: "Eduardo", apellido: "Hernandez", telefono:"5515123712", correo:"alberto.blue.19@gmail.com",edad:28,estado:"No interesado" },
@@ -23,6 +23,7 @@ const data=[
   
 ];
 
+const url="http://127.0.0.1:5000"
 
 class App extends React.Component {
 
@@ -34,41 +35,70 @@ class App extends React.Component {
     modalInsertar: false,
     form: {
       id: "",
-      personaje: "",
-      anime: "",
+      nombre: "",
+      apellido: "",
+      telefono: "",
+      correo: "",
+      edad: "",
     },
   };
+  peticionPut=async (data)=>{
+    console.log("El id que recibo es: ",data.id);
+    await axios.put(url+'/update/'+data.id, this.state.form).then(response=>{
+      console.log(response);
+      this.peticionGet();
+      this.setState({ modalActualizar: false})
+    })
+  }
 
-  /*
-  // definition of componentDidMount method  
-  componentDidMount() {
-    fetch('https://reqres.in/api/users?page=2',
-    {
-      method:'GET',
-      mode: 'no-cors',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+  peticionPost=async()=>{
+    delete this.state.form.id;
+    console.log("Lo que recibo es: ",this.state.form)
+   await axios.post(url+'/add',this.state.form).then(response=>{
+     console.log("La respuesta al añadir un usuario es: ",response);
+      this.setState({
+        modalInsertar: false,
+      });
+      this.peticionGet();
+     
+    }).catch(error=>{
+      this.setState({
+        modalInsertar: false,
+      });
+      window.alert("Error con los datos ingresados");
       
+      console.log(error.message);
+    })
+  }
 
+
+  peticionDelete=(id)=>{
+    var opcion = window.confirm("Estás Seguro que deseas Eliminar el elemento "+id);
+
+    if(opcion){
+      axios.delete(url+'/delete/'+id, this.state.form).then(response=>{
+        console.log(response);
+        this.peticionGet();
+      })
+
+    }
+    
   }
-    )
-        // check the response
-        .then(response => {
-                console.log(response);
-                return response.json();
-                
-            
-        })
-        .then(d => {
-          console.log("Este es d",d);
-          this.setState({ data: d});
-          }
-          )
-        .catch(error => this.setState({ data:[] }));
-        
-  }
-*/
+
+  peticionGet=()=>{
+    axios.get(url+'/users').then(response=>{
+      console.log(response.data);
+      this.setState({data: response.data.users});
+    }).catch(error=>{
+      console.log(error.message);
+    })
+    }
+
+    componentDidMount() {
+      this.peticionGet();
+    }
+
+  
   
 
   mostrarModalActualizar = (dato) => {
@@ -92,46 +122,7 @@ class App extends React.Component {
     this.setState({ modalInsertar: false });
   };
 
-  editar = (dato) => {
-    var contador = 0;
-    var arreglo = this.state.data;
-    arreglo.map((registro) => {
-      if (dato.id == registro.id) {
-        arreglo[contador].nombre = dato.nombre;
-        arreglo[contador].apellido = dato.apellido;
-        arreglo[contador].telefono = dato.telefono;
-        arreglo[contador].correo = dato.correo;
-        arreglo[contador].edad = dato.edad;
-        arreglo[contador].estado = dato.estado;
 
-      }
-      contador++;
-    });
-    this.setState({ data: arreglo, modalActualizar: false });
-  };
-
-  eliminar = (dato) => {
-    var opcion = window.confirm("Estás Seguro que deseas Eliminar el elemento "+dato.id);
-    if (opcion == true) {
-      var contador = 0;
-      var arreglo = this.state.data;
-      arreglo.map((registro) => {
-        if (dato.id == registro.id) {
-          arreglo.splice(contador, 1);
-        }
-        contador++;
-      });
-      this.setState({ data: arreglo, modalActualizar: false });
-    }
-  };
-
-  insertar= ()=>{
-    var valorNuevo= {...this.state.form};
-    valorNuevo.id=this.state.data.length+1;
-    var lista= this.state.data;
-    lista.push(valorNuevo);
-    this.setState({ modalInsertar: false, data: lista });
-  }
 
   handleChange = (e) => {
     this.setState({
@@ -182,7 +173,7 @@ class App extends React.Component {
                     >
                       Editar
                     </Button>{" "}
-                    <Button color="danger" onClick={()=> this.eliminar(dato)}>Eliminar</Button>
+                    <Button color="danger" onClick={()=> this.peticionDelete(dato.id)}>Eliminar</Button>
                   </td>
                 </tr>
               ))}
@@ -196,24 +187,13 @@ class App extends React.Component {
           </ModalHeader>
 
           <ModalBody>
-            <FormGroup>
-              <label>
-               Id:
-              </label>
-            
-              <input
-                className="form-control"
-                readOnly
-                type="text"
-                value={this.state.form.id}
-              />
-            </FormGroup>
             
             <FormGroup>
               <label>
                 Nombre: 
               </label>
               <input
+                required
                 className="form-control"
                 name="nombre"
                 type="text"
@@ -227,6 +207,7 @@ class App extends React.Component {
                 Apellido: 
               </label>
               <input
+                required
                 className="form-control"
                 name="apellido"
                 type="text"
@@ -240,6 +221,7 @@ class App extends React.Component {
                 Telefono: 
               </label>
               <input
+                required
                 className="form-control"
                 name="telefono"
                 type="text"
@@ -254,9 +236,10 @@ class App extends React.Component {
                 Correo: 
               </label>
               <input
+                required
                 className="form-control"
                 name="correo"
-                type="text"
+                type="email"
                 onChange={this.handleChange}
                 value={this.state.form.correo}
               />
@@ -268,9 +251,10 @@ class App extends React.Component {
                 Edad: 
               </label>
               <input
+                required
                 className="form-control"
                 name="edad"
-                type="text"
+                type="number"
                 onChange={this.handleChange}
                 value={this.state.form.edad}
               />
@@ -279,24 +263,24 @@ class App extends React.Component {
 
             <FormGroup>
 
-              
-              <label>
-                Estado: 
-              </label>
-              <input
-                className="form-control"
-                name="estado"
-                type="estado"
-                onChange={this.handleChange}
-                value={this.state.form.estado}
-              />
+            <select  name="estado" onChange={this.handleChange} >
+                  <option defaultValue={"Nuevo"} >Selecciona un estado</option>
+                  <option value="Nuevo">Nuevo</option>
+                  <option value="No interesado">No interesado</option>
+                  <option value="Número equivocado">Número equivocado</option>
+                  <option value="Información equivocada">Información equivocada</option>
+                  <option value="Alto potencial">Alto potencial</option>
+                  <option value="Bajo potencial">Bajo potencial</option>
+           </select>
+
+
             </FormGroup>
           </ModalBody>
 
           <ModalFooter>
             <Button
               color="primary"
-              onClick={() => this.editar(this.state.form)}
+              onClick={() => this.peticionPut(this.state.form)}
             >
               Editar
             </Button>
@@ -317,24 +301,13 @@ class App extends React.Component {
           </ModalHeader>
 
           <ModalBody>
-            <FormGroup>
-              <label>
-                Id: 
-              </label>
-              
-              <input
-                className="form-control"
-                readOnly
-                type="text"
-                value={this.state.data.length+1}
-              />
-            </FormGroup>
             
             <FormGroup>
               <label>
                 Nombre: 
               </label>
               <input
+                required
                 className="form-control"
                 name="nombre"
                 type="text"
@@ -344,9 +317,11 @@ class App extends React.Component {
             
             <FormGroup>
               <label>
+                
                 Apellido: 
               </label>
               <input
+                required
                 className="form-control"
                 name="apellido"
                 type="text"
@@ -356,9 +331,11 @@ class App extends React.Component {
 
             <FormGroup>
               <label>
+                 
                Telefono: 
               </label>
               <input
+                required
                 className="form-control"
                 name="telefono"
                 type="text"
@@ -371,9 +348,10 @@ class App extends React.Component {
                Correo: 
               </label>
               <input
+                required
                 className="form-control"
                 name="correo"
-                type="text"
+                type="email"
                 onChange={this.handleChange}
               />
             </FormGroup>
@@ -384,30 +362,40 @@ class App extends React.Component {
                Edad: 
               </label>
               <input
+                required
                 className="form-control"
                 name="edad"
-                type="text"
+                type="number"
                 onChange={this.handleChange}
               />
             </FormGroup>
 
+          
+
             <FormGroup>
-              <label>
-               Estado: 
-              </label>
-              <input
-                className="form-control"
-                name="estado"
-                type="text"
-                onChange={this.handleChange}
-              />
+
+            <select  name="estado" onChange={this.handleChange} >
+                  <option defaultValue={"Nuevo"} >Selecciona un estado</option>
+                  <option value="Nuevo">Nuevo</option>
+                  <option value="No interesado">No interesado</option>
+                  <option value="Número equivocado">Número equivocado</option>
+                  <option value="Información equivocada">Información equivocada</option>
+                  <option value="Alto potencial">Alto potencial</option>
+                  <option value="Bajo potencial">Bajo potencial</option>
+           </select>
+      
+      
             </FormGroup>
+
+
+
+
           </ModalBody>
 
           <ModalFooter>
             <Button
               color="primary"
-              onClick={() => this.insertar()}
+              onClick={() => this.peticionPost()}
             >
               Insertar
             </Button>
